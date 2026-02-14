@@ -17,6 +17,7 @@ const run = async () => {
         source: 'SCAN',
         last_seen: Date.now() - (15 * 60 * 1000), // 15 mins ago
         is_fixed_ip: 0,
+        is_wired: 0,
         updated_at: Date.now()
     });
 

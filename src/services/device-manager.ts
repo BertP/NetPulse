@@ -46,8 +46,10 @@ export class DeviceManager {
 
         // 2. Active Scan
         const subnet = config.scanner.subnet;
+        const scanStart = Date.now();
         const scanResults = await this.scanner.scanSubnet(subnet);
-        console.log(`📡 Scan: Found ${scanResults.length} ARP entries`);
+        const scanDuration = Date.now() - scanStart;
+        console.log(`📡 Scan: Found ${scanResults.length} ARP entries in ${scanDuration}ms`);
 
         for (const scanned of scanResults) {
             const mac = scanned.mac.toLowerCase();
@@ -62,10 +64,7 @@ export class DeviceManager {
                 source: 'SCAN',
                 last_seen: now,
                 is_fixed_ip: 0,
-                is_wired: 1, // Wired by definition if ARP scan works? Actually ARP is L2, could be either. 
-                // But scanner normally sees everything on the local subnet. 
-                // Let's default to wireless for scan and let UniFi overwrite if known.
-                // Or rather, UniFi is the source of truth for topology.
+                is_wired: 0, // Default to wireless for scans; UniFi will refine this if known
                 updated_at: now
             };
 

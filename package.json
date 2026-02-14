@@ -1,0 +1,32 @@
+{
+  "name": "netpulse-backend",
+  "version": "1.0.0",
+  "description": "NetPulse Backend Service",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "nodemon",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test:unifi": "ts-node scripts/test-unifi.ts",
+    "test:sync": "ts-node scripts/test-sync.ts",
+    "test:report": "ts-node scripts/test-report.ts",
+    "test:alert": "ts-node scripts/test-alert.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "axios": "^1.6.0",
+    "better-sqlite3": "^9.0.0",
+    "dotenv": "^16.3.0",
+    "fastify": "^4.24.0",
+    "https-proxy-agent": "^7.0.0",
+    "ping": "^0.4.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.0.0",
+    "@types/ping": "^0.4.4",
+    "nodemon": "^3.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}

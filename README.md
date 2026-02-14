@@ -11,6 +11,25 @@ NetPulse is a mobile-first network monitoring dashboard designed for real-time v
 - **Redundant Source Merging**: Seamlessly tracks both fixed IP and DHCP devices.
 - **Dockerized Architecture**: Easy deployment via Docker Compose for Ubuntu and other platforms.
 
+## 📱 Dashboard Interface
+
+The NetPulse dashboard provides a high-density, real-time view of your network. Each **Device Card** contains the following information:
+
+- **Topology Icon**: 
+  - **Network** icon: Wired (Ethernet) connection.
+  - **Wifi** icon: Wireless connection.
+  - **Blue Badge**: Indicates a **Fixed IP** reservation.
+- **Primary Info**: Device hostname (or "Unknown"), current IP address, MAC address, and hardware vendor.
+- **Status Indicator**: 
+  - **Online** (Emerald): Device is active and reachable.
+  - **Unstable** (Orange): Device missed a check but is not yet considered offline.
+  - **Offline** (Rose): Device has been unreachable beyond the configured threshold.
+- **Source Attribution**:
+  - `UniFi Cloud`: Data synchronized from the UniFi Controller.
+  - `Local Scan`: Discovered via active ARP/ICMP probing.
+  - `Redundant`: Device successfully tracked by both discovery engines.
+- **Timeline**: Real-time "Last Seen" timestamp for every participant.
+
 ## 🛠 Tech Stack
 
 - **Backend**: Node.js, Fastify, TypeScript, SQLite.

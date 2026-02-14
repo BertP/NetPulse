@@ -7,6 +7,7 @@ const run = async () => {
     const alertManager = new AlertManager();
 
     // V2: Fix for build failure with is_wired
+    const mac = 'aa:bb:cc:dd:ee:ff';
     db.upsertDevice({
         mac,
         ip: '10.0.0.123',

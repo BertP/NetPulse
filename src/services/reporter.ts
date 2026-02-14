@@ -30,6 +30,20 @@ export class ReportService {
         const onlineCount = devices.filter(d => d.status === 'ONLINE').length;
         const unstableCount = devices.filter(d => d.status === 'UNSTABLE').length;
         const offlineCount = devices.filter(d => d.status === 'OFFLINE').length;
+        const fixedIpCount = devices.filter(d => d.is_fixed_ip === 1).length;
+        const dhcpCount = devices.length - fixedIpCount;
+        const wiredCount = devices.filter(d => d.is_wired === 1).length;
+        const wirelessCount = devices.length - wiredCount;
+
+        // Manufacturer Breakdown
+        const manufacturers: Record<string, number> = {};
+        devices.forEach(d => {
+            const vendor = d.vendor || 'Unknown';
+            manufacturers[vendor] = (manufacturers[vendor] || 0) + 1;
+        });
+        const sortedManufacturers = Object.entries(manufacturers)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10); // Top 10
 
         md += `## Network Summary\n\n`;
         md += `| Metric | Count |\n`;
@@ -37,7 +51,19 @@ export class ReportService {
         md += `| **Total Devices** | ${devices.length} |\n`;
         md += `| **Online** | ${onlineCount} |\n`;
         md += `| **Unstable** | ${unstableCount} |\n`;
-        md += `| **Offline** | ${offlineCount} |\n\n`;
+        md += `| **Offline** | ${offlineCount} |\n`;
+        md += `| **Fixed IP Clients** | ${fixedIpCount} |\n`;
+        md += `| **DHCP Clients** | ${dhcpCount} |\n`;
+        md += `| **Wired Connections** | ${wiredCount} |\n`;
+        md += `| **Wireless Connections** | ${wirelessCount} |\n\n`;
+
+        md += `### Top Manufacturers\n\n`;
+        md += `| Manufacturer | Count |\n`;
+        md += `| :--- | :--- |\n`;
+        for (const [name, count] of sortedManufacturers) {
+            md += `| ${name} | ${count} |\n`;
+        }
+        md += `\n`;
 
         md += `## Device List\n\n`;
         md += `| Device Name | Connection | IP Address | IP Type | MAC Address | Vendor | Last Seen | Status |\n`;

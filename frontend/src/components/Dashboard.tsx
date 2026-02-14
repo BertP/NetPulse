@@ -16,6 +16,8 @@ interface Device {
     status: 'ONLINE' | 'UNSTABLE' | 'OFFLINE';
     source: 'UNIFI' | 'SCAN' | 'BOTH';
     last_seen: number;
+    is_wired: number;
+    is_fixed_ip: number;
 }
 
 export const Dashboard = () => {

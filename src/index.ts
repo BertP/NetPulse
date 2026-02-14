@@ -1,5 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import staticPlugin from '@fastify/static';
+import path from 'path';
 import { config } from './config';
 import { DeviceManager } from './services/device-manager';
 import { ReportService } from './services/reporter';
@@ -11,6 +13,11 @@ const fastify = Fastify({
 
 fastify.register(cors, {
     origin: '*', // Allow all for dev, refine for prod
+});
+
+fastify.register(staticPlugin, {
+    root: path.join(__dirname, '../reports'),
+    prefix: '/reports/',
 });
 
 const deviceManager = new DeviceManager();
@@ -32,8 +39,9 @@ fastify.post('/scan', async (request, reply) => {
 });
 
 fastify.post('/report', async (request, reply) => {
-    const report = reporter.generateMarkdown();
-    return { message: 'Report generated', report };
+    const filename = reporter.generateMarkdown();
+    const url = `http://localhost:${config.port}/reports/${filename}`;
+    return { message: 'Report generated', filename, url };
 });
 
 const start = async () => {

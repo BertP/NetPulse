@@ -23,16 +23,17 @@ export class NetworkScanner {
 
         console.log(`📡 Scanning subnet ${subnetBase}.0/24...`);
 
-        // 1. Flood Ping (Active Reachability)
-        // We ping all 254 hosts to confirm reachability and populate ARP table
-        for (let i = 1; i < 255; i++) {
-            const ip = `${subnetBase}.${i}`;
-            promises.push(ping.promise.probe(ip, {
-                timeout: 1, // fast timeout
-            }));
+        // 1. Batch Ping (Active Reachability)
+        // Pinging in batches of 32 to avoid overwhelming system
+        const BATCH_SIZE = 32;
+        for (let i = 1; i < 255; i += BATCH_SIZE) {
+            const batch = [];
+            for (let j = 0; j < BATCH_SIZE && (i + j) < 255; j++) {
+                const ip = `${subnetBase}.${i + j}`;
+                batch.push(ping.promise.probe(ip, { timeout: 1 }));
+            }
+            await Promise.all(batch);
         }
-
-        await Promise.all(promises);
 
         // 2. Read ARP Table (Layer 2 Discovery)
         // This gives us MAC addresses for the IPs we just pinged (if they exist)

@@ -7,9 +7,10 @@ export interface Device {
     ip: string;
     hostname: string;
     vendor: string;
-    status: 'ONLINE' | 'OFFLINE';
+    status: 'ONLINE' | 'UNSTABLE' | 'OFFLINE';
     source: 'UNIFI' | 'SCAN' | 'BOTH';
     last_seen: number;
+    is_fixed_ip: number; // 0 or 1
     updated_at: number;
 }
 
@@ -31,8 +32,8 @@ export class DatabaseService {
 
     upsertDevice(device: Device) {
         const stmt = this.db.prepare(`
-      INSERT INTO devices (mac, ip, hostname, vendor, status, source, last_seen, updated_at)
-      VALUES (@mac, @ip, @hostname, @vendor, @status, @source, @last_seen, @updated_at)
+      INSERT INTO devices (mac, ip, hostname, vendor, status, source, last_seen, is_fixed_ip, updated_at)
+      VALUES (@mac, @ip, @hostname, @vendor, @status, @source, @last_seen, @is_fixed_ip, @updated_at)
       ON CONFLICT(mac) DO UPDATE SET
         ip = excluded.ip,
         hostname = COALESCE(excluded.hostname, devices.hostname),
@@ -43,6 +44,7 @@ export class DatabaseService {
           ELSE excluded.source 
         END,
         last_seen = MAX(devices.last_seen, excluded.last_seen),
+        is_fixed_ip = excluded.is_fixed_ip,
         updated_at = excluded.updated_at
     `);
 
@@ -64,8 +66,8 @@ export class DatabaseService {
         // So this upsert just saves what it is told.
 
         const simpleStmt = this.db.prepare(`
-        INSERT INTO devices (mac, ip, hostname, vendor, status, source, last_seen, updated_at)
-        VALUES (@mac, @ip, @hostname, @vendor, @status, @source, @last_seen, @updated_at)
+        INSERT INTO devices (mac, ip, hostname, vendor, status, source, last_seen, is_fixed_ip, updated_at)
+        VALUES (@mac, @ip, @hostname, @vendor, @status, @source, @last_seen, @is_fixed_ip, @updated_at)
         ON CONFLICT(mac) DO UPDATE SET
             ip = excluded.ip,
             hostname = excluded.hostname,
@@ -73,6 +75,7 @@ export class DatabaseService {
             status = excluded.status,
             source = excluded.source,
             last_seen = excluded.last_seen,
+            is_fixed_ip = excluded.is_fixed_ip,
             updated_at = excluded.updated_at
     `);
 

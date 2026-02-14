@@ -15,6 +15,7 @@ export interface UniFiClient {
     oui: string; // Vendor
     is_wired: boolean;
     last_seen: number;
+    use_fixedip?: boolean;
     uplink_mac?: string;
 }
 

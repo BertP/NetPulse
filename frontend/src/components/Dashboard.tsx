@@ -5,7 +5,7 @@ import { RefreshCw, Activity, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 // Configure Axios
 const api = axios.create({
-    baseURL: 'http://localhost:3000', // Update for prod or use env
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
 });
 
 interface Device {
@@ -13,7 +13,7 @@ interface Device {
     ip: string;
     hostname: string;
     vendor: string;
-    status: 'ONLINE' | 'OFFLINE';
+    status: 'ONLINE' | 'UNSTABLE' | 'OFFLINE';
     source: 'UNIFI' | 'SCAN' | 'BOTH';
     last_seen: number;
 }
@@ -54,9 +54,14 @@ export const Dashboard = () => {
     const downloadReport = async () => {
         try {
             const res = await api.post('/report');
-            alert(`Report Generated:\n${res.data.message}`);
+            if (res.data.url) {
+                window.open(res.data.url, '_blank');
+            } else {
+                alert(`Report Generated:\n${res.data.message}`);
+            }
         } catch (e) {
             console.error(e);
+            alert('Failed to generate report');
         }
     };
 
@@ -70,72 +75,97 @@ export const Dashboard = () => {
     const offlineCount = devices.length - onlineCount;
 
     return (
-        <div className="container mx-auto p-4 max-w-4xl">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                        NetPulse Monitor
-                    </h1>
-                    <p className="text-slate-400 text-sm flex items-center gap-2">
-                        <Activity size={14} className="text-green-500" />
-                        Live Monitoring • Updated {lastUpdated.toLocaleTimeString()}
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={triggerScan}
-                        disabled={scanning}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all
-                        ${scanning
-                                ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg py-2'}`}
-                    >
-                        <RefreshCw size={18} className={scanning ? 'animate-spin' : ''} />
-                        {scanning ? 'Scanning...' : 'Scan Network'}
-                    </button>
-                    <button
-                        onClick={downloadReport}
-                        className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all font-medium"
-                    >
-                        Generate Report
-                    </button>
-                </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                    <div className="text-slate-400 text-sm mb-1">Total Devices</div>
-                    <div className="text-3xl font-bold text-white">{devices.length}</div>
-                </div>
-                <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                    <div className="text-slate-400 text-sm mb-1 flex items-center gap-1">
-                        <CheckCircle2 size={14} className="text-green-500" /> Online
+        <div className="min-h-screen bg-[#020617] text-slate-100 p-8 font-sans transition-colors duration-500 selection:bg-emerald-500/30">
+            <div className="max-w-4xl mx-auto">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 bg-white/[0.02] backdrop-blur-md p-6 rounded-3xl border border-white/5 shadow-2xl animate-fade-in">
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <div className="p-2 bg-emerald-500/10 rounded-lg">
+                                <Activity size={24} className="text-emerald-400 status-pulse" />
+                            </div>
+                            <h1 className="text-3xl font-black tracking-tighter text-white">NetPulse</h1>
+                        </div>
+                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            Dynamic Network Stream • Updated {lastUpdated.toLocaleTimeString()}
+                        </p>
                     </div>
-                    <div className="text-3xl font-bold text-green-400">{onlineCount}</div>
-                </div>
-                <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                    <div className="text-slate-400 text-sm mb-1 flex items-center gap-1">
-                        <AlertCircle size={14} className="text-red-500" /> Offline
+                    <div className="flex gap-3">
+                        <button
+                            onClick={triggerScan}
+                            disabled={scanning}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all duration-300
+                            ${scanning
+                                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.2)] active:scale-95'}`}
+                        >
+                            <RefreshCw size={16} className={scanning ? 'animate-spin' : ''} />
+                            {scanning ? 'Discovering...' : 'Initiate Scan'}
+                        </button>
+                        <button
+                            onClick={downloadReport}
+                            className="px-6 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all duration-300 font-bold text-xs uppercase tracking-widest active:scale-95"
+                        >
+                            Export Report
+                        </button>
                     </div>
-                    <div className="text-3xl font-bold text-red-400">{offlineCount}</div>
                 </div>
-            </div>
 
-            {/* Device List */}
-            <div className="space-y-3">
-                {loading ? (
-                    <div className="text-center py-12 text-slate-500">Loading devices...</div>
-                ) : devices.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500 bg-slate-800/50 rounded-lg">No devices found. Try scanning.</div>
-                ) : (
-                    devices
-                        .sort((a, b) => b.last_seen - a.last_seen)
-                        .map(device => (
-                            <DeviceCard key={device.mac} device={device} />
-                        ))
-                )}
+                {/* Stat Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                    <div className="bg-white/[0.02] backdrop-blur-sm p-6 rounded-3xl border border-white/5 shadow-xl animate-fade-in hover:bg-white/[0.04] transition-colors group" style={{ animationDelay: '0.1s' }}>
+                        <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-3 opacity-60 group-hover:opacity-100 transition-opacity">Registered Pool</div>
+                        <div className="text-4xl font-black text-white tracking-tighter">{devices.length}</div>
+                    </div>
+                    <div className="bg-white/[0.02] backdrop-blur-sm p-6 rounded-3xl border border-white/5 shadow-xl animate-fade-in hover:bg-white/[0.04] transition-colors group" style={{ animationDelay: '0.2s' }}>
+                        <div className="text-emerald-500/80 text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <CheckCircle2 size={12} /> Active Nodes
+                        </div>
+                        <div className="text-4xl font-black text-emerald-400 tracking-tighter">{onlineCount}</div>
+                    </div>
+                    <div className="bg-white/[0.02] backdrop-blur-sm p-6 rounded-3xl border border-white/5 shadow-xl animate-fade-in hover:bg-white/[0.04] transition-colors group" style={{ animationDelay: '0.3s' }}>
+                        <div className="text-rose-500/80 text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <AlertCircle size={12} /> Disconnected
+                        </div>
+                        <div className="text-4xl font-black text-rose-400 tracking-tighter">{offlineCount}</div>
+                    </div>
+                </div>
+
+                {/* Device List Section */}
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between px-2">
+                        <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Network Environment</h2>
+                        <div className="h-px flex-1 mx-6 bg-white/5" />
+                    </div>
+
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-4 animate-pulse">
+                            <div className="w-12 h-12 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+                            <div className="text-[10px] font-bold uppercase tracking-widest">Synchronizing Metadata...</div>
+                        </div>
+                    ) : devices.length === 0 ? (
+                        <div className="text-center py-20 text-slate-500 bg-white/[0.02] rounded-3xl border border-dashed border-white/10 mx-2">
+                            <div className="text-[10px] font-bold uppercase tracking-widest opacity-40">No participants detected in the current scope.</div>
+                        </div>
+                    ) : (
+                        <div className="grid gap-4 px-1">
+                            {devices
+                                .sort((a, b) => {
+                                    const statusWeight = { 'ONLINE': 0, 'UNSTABLE': 1, 'OFFLINE': 2 };
+                                    if (a.status !== b.status) return statusWeight[a.status] - statusWeight[b.status];
+                                    return b.last_seen - a.last_seen;
+                                })
+                                .map(device => (
+                                    <DeviceCard key={device.mac} device={device} />
+                                ))
+                            }
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

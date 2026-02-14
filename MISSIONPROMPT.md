@@ -13,7 +13,19 @@ Data Synchronization: Merging both sources to ensure seamless tracking of both d
 B. Dashboard & Reporting
 Mobile-First UI: A responsive web interface featuring intuitive status visualization (traffic light system: Online / Unstable / Offline).
 
-On-Demand Reporting: Functionality to generate a structured Markdown report documenting the current network state.
+On-Demand Reporting: Functionality to generate a structured Markdown report documenting the current network state. The report should include the following information:
+
+- Device name
+- IP address with info if this is a fixed ip or an dhcp lease   
+- MAC address
+- Vendor
+- Last seen time
+- Status (Online / Unstable / Offline)
+- add some usefull statistics at the end of the report (e.g. number of devices, number of online devices, number of unstable devices, number of offline devices, number of DHCP clients, Numder of devices per manufacturer, and so on
+
+The report should be generated in Markdown format and should be saved to a file with the following naming convention: network_report_YYYY-MM-DD_HH-MM-SS.md
+
+The report should be opened in a new browser tab after generation.
 
 C. Alerting & Monitoring
 Threshold Logic: Monitoring with configurable triggers (e.g., alert triggered after 10 minutes of continuous offline status).

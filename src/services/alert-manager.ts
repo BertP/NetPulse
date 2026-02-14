@@ -1,4 +1,4 @@
-
+import { config } from '../config';
 import { DatabaseService } from './database';
 import { MailerService } from './mailer';
 
@@ -15,33 +15,36 @@ export class AlertManager {
     async checkThresholds() {
         const devices = this.db.getAllDevices();
         const now = Date.now();
-        const THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+        const THRESHOLD_MS = config.alerts.thresholdMin * 60 * 1000;
 
         for (const device of devices) {
-            // Check if device is effectively offline based on last_seen
-            // Even if status says ONLINE, if last_seen is old, it's suspicious.
-            // But usually the DeviceManager updates status to OFFLINE if it misses a scan?
-            // Actually, my DeviceManager currently only upserts "ONLINE". 
-            // It lacks logic to mark things "OFFLINE" if they vanish!
-            // This is a logic gap I should address here or in DeviceManager.
-            // For now, let's rely on 'last_seen'.
+            // Check if device is marked OFFLINE or has very old last_seen
+            // Status is the primary indicator updated by DeviceManager.sync()
 
             const timeSinceSeen = now - device.last_seen;
+            const isStale = timeSinceSeen > THRESHOLD_MS;
 
-            if (timeSinceSeen > THRESHOLD_MS) {
-                // Device is logically offline
+            if (device.status === 'OFFLINE') {
+                // Device is confirmed offline
                 if (!this.alertedDevices.has(device.mac)) {
                     // Trigger Alert
-                    const msg = `Device ${device.hostname || device.mac} (${device.ip}) has been offline for ${Math.floor(timeSinceSeen / 60000)} minutes.`;
-                    await this.mailer.sendAlert(`Device Offline: ${device.hostname || device.mac}`, msg);
+                    const statusText = device.status === 'OFFLINE' ? 'marked as OFFLINE' : 'stale';
+                    const msg = `⚠️ ALERT: Device ${device.hostname || 'Unknown'} (${device.mac}) is ${statusText}.\n` +
+                        `IP: ${device.ip}\n` +
+                        `Last Seen: ${new Date(device.last_seen).toLocaleString()}\n` +
+                        `Time Since Seen: ${Math.floor(timeSinceSeen / 60000)} minutes.`;
 
+                    await this.mailer.sendAlert(`NetPulse Alert: Device Offline - ${device.hostname || device.mac}`, msg);
                     this.alertedDevices.add(device.mac);
                 }
-            } else {
-                // Device is back online or not yet threshold
+            } else if (device.status === 'ONLINE' && !isStale) {
+                // Device is back online
                 if (this.alertedDevices.has(device.mac)) {
-                    // It came back!
-                    await this.mailer.sendAlert(`Device Online: ${device.hostname || device.mac}`, `Device is back online.`);
+                    const msg = `✅ Device ${device.hostname || 'Unknown'} (${device.mac}) is back ONLINE.\n` +
+                        `IP: ${device.ip}\n` +
+                        `Timestamp: ${new Date().toLocaleString()}`;
+
+                    await this.mailer.sendAlert(`NetPulse Info: Device Online - ${device.hostname || device.mac}`, msg);
                     this.alertedDevices.delete(device.mac);
                 }
             }

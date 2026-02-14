@@ -18,26 +18,25 @@ export class DeviceManager {
     async sync() {
         console.log('🔄 Starting Device Sync...');
         const now = Date.now();
+        const seenMacsInThisLoop = new Set<string>();
 
         // 1. Fetch UniFi Clients
         const unifiClients = await this.unifi.getClients();
         console.log(`📥 UniFi: Found ${unifiClients.length} clients`);
 
         for (const client of unifiClients) {
-            // Upsert UniFi data
-            // We assume UniFi is source of truth for Hostname/Vendor often
-
-            // Normalize MAC
             const mac = client.mac.toLowerCase();
+            seenMacsInThisLoop.add(mac);
 
             const device: Device = {
                 mac: mac,
                 ip: client.ip,
                 hostname: client.name || client.hostname || '',
                 vendor: client.oui,
-                status: 'ONLINE', // UniFi reports them as connected
+                status: 'ONLINE',
                 source: 'UNIFI',
-                last_seen: client.last_seen * 1000, // UniFi uses seconds
+                last_seen: client.last_seen * 1000,
+                is_fixed_ip: client.use_fixedip ? 1 : 0,
                 updated_at: now
             };
 
@@ -45,29 +44,56 @@ export class DeviceManager {
         }
 
         // 2. Active Scan
-        // Extract subnet from Config or just guess from local IP logic.
-        // For MVP, taking the subnet from the first UniFi client or config default?
-        // Let's use a config default or 192.168.1
-        // Better: parse it from env if possible, or simplified '192.168.1'
-        const subnet = '192.168.1';
+        const subnet = config.scanner.subnet;
         const scanResults = await this.scanner.scanSubnet(subnet);
         console.log(`📡 Scan: Found ${scanResults.length} ARP entries`);
 
         for (const scanned of scanResults) {
             const mac = scanned.mac.toLowerCase();
+            seenMacsInThisLoop.add(mac);
 
             const device: Device = {
                 mac: mac,
                 ip: scanned.ip,
-                hostname: '', // Scanner doesn't easily get hostname without reverse DNS
+                hostname: '',
                 vendor: '',
                 status: 'ONLINE',
                 source: 'SCAN',
                 last_seen: now,
+                is_fixed_ip: 0,
                 updated_at: now
             };
 
             this.mergeAndSave(device);
+        }
+
+        // 3. Mark Offline / Unstable
+        const allDevices = this.db.getAllDevices();
+        const THRESHOLD_MS = config.alerts.thresholdMin * 60 * 1000;
+
+        for (const dbDevice of allDevices) {
+            if (!seenMacsInThisLoop.has(dbDevice.mac)) {
+                const timeSinceSeen = now - dbDevice.last_seen;
+                let newStatus: 'ONLINE' | 'UNSTABLE' | 'OFFLINE' = dbDevice.status;
+
+                if (timeSinceSeen >= THRESHOLD_MS) {
+                    newStatus = 'OFFLINE';
+                } else if (timeSinceSeen >= (THRESHOLD_MS / 2)) {
+                    newStatus = 'UNSTABLE';
+                } else {
+                    // It just missed a scan, but it's still relatively fresh
+                    newStatus = 'ONLINE';
+                }
+
+                if (newStatus !== dbDevice.status) {
+                    console.log(`📡 Status Change: ${dbDevice.hostname || dbDevice.mac} -> ${newStatus}`);
+                    this.db.upsertDevice({
+                        ...dbDevice,
+                        status: newStatus,
+                        updated_at: now
+                    });
+                }
+            }
         }
     }
 
@@ -92,6 +118,12 @@ export class DeviceManager {
             // 3. Vendor: Prefer non-empty
             const vendor = newDevice.vendor || existing.vendor;
 
+            // 4. Fixed IP: Only UniFi knows for sure
+            let is_fixed_ip = existing.is_fixed_ip;
+            if (newDevice.source === 'UNIFI') {
+                is_fixed_ip = newDevice.is_fixed_ip;
+            }
+
             const merged: Device = {
                 ...existing,
                 ip: newDevice.ip, // IP might change, take latest
@@ -100,6 +132,7 @@ export class DeviceManager {
                 status: 'ONLINE', // If we just saw it, it's ONLINE
                 source,
                 last_seen: Math.max(existing.last_seen, newDevice.last_seen),
+                is_fixed_ip,
                 updated_at: Date.now()
             };
 

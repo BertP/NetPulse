@@ -12,4 +12,18 @@ export const config = {
         site: process.env.UNIFI_SITE || 'default',
         ignoreSsl: true, // Common for local controllers
     },
+    scanner: {
+        subnet: process.env.SCAN_SUBNET || '192.168.1',
+    },
+    email: {
+        host: process.env.SMTP_HOST || '',
+        port: parseInt(process.env.SMTP_PORT || '587', 10),
+        user: process.env.SMTP_USER || '',
+        pass: process.env.SMTP_PASS || '',
+        from: process.env.SMTP_FROM || 'NetPulse <alerts@netpulse.local>',
+        to: process.env.SMTP_TO || '',
+    },
+    alerts: {
+        thresholdMin: parseInt(process.env.ALERT_THRESHOLD_MIN || '10', 10),
+    }
 };

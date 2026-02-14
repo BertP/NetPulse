@@ -20,9 +20,9 @@ services:
       - SMTP_FROM=${SMTP_FROM}
       - SMTP_TO=${SMTP_TO}
       - ALERT_THRESHOLD_MIN=${ALERT_THRESHOLD_MIN}
+      - DB_PATH=/app/data/netpulse.db
     volumes:
       - ./netpulse-data:/app/data
-      - ./netpulse.db:/app/netpulse.db
       - ./reports:/app/reports
 
   frontend:

@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import { config } from '../config';
 
 export interface Device {
     mac: string;
@@ -19,8 +20,7 @@ export class DatabaseService {
     private db: Database.Database;
 
     constructor() {
-        const dbPath = path.resolve(__dirname, '../../netpulse.db');
-        this.db = new Database(dbPath);
+        this.db = new Database(config.databasePath);
         this.init();
     }
 

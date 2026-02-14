@@ -25,5 +25,6 @@ export const config = {
     },
     alerts: {
         thresholdMin: parseInt(process.env.ALERT_THRESHOLD_MIN || '10', 10),
-    }
+    },
+    databasePath: process.env.DB_PATH || path.resolve(__dirname, '../../netpulse.db')
 };

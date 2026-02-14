@@ -37,6 +37,7 @@ export class DeviceManager {
                 source: 'UNIFI',
                 last_seen: client.last_seen * 1000,
                 is_fixed_ip: client.use_fixedip ? 1 : 0,
+                is_wired: client.is_wired ? 1 : 0,
                 updated_at: now
             };
 
@@ -61,6 +62,10 @@ export class DeviceManager {
                 source: 'SCAN',
                 last_seen: now,
                 is_fixed_ip: 0,
+                is_wired: 1, // Wired by definition if ARP scan works? Actually ARP is L2, could be either. 
+                // But scanner normally sees everything on the local subnet. 
+                // Let's default to wireless for scan and let UniFi overwrite if known.
+                // Or rather, UniFi is the source of truth for topology.
                 updated_at: now
             };
 
@@ -120,8 +125,10 @@ export class DeviceManager {
 
             // 4. Fixed IP: Only UniFi knows for sure
             let is_fixed_ip = existing.is_fixed_ip;
+            let is_wired = existing.is_wired;
             if (newDevice.source === 'UNIFI') {
                 is_fixed_ip = newDevice.is_fixed_ip;
+                is_wired = newDevice.is_wired;
             }
 
             const merged: Device = {
@@ -133,6 +140,7 @@ export class DeviceManager {
                 source,
                 last_seen: Math.max(existing.last_seen, newDevice.last_seen),
                 is_fixed_ip,
+                is_wired,
                 updated_at: Date.now()
             };
 

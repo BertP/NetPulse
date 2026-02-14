@@ -40,21 +40,26 @@ export class ReportService {
         md += `| **Offline** | ${offlineCount} |\n\n`;
 
         md += `## Device List\n\n`;
-        md += `| Device Name | IP Address | MAC Address | Vendor | Last Seen | Status |\n`;
-        md += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
+        md += `| Device Name | Connection | IP Address | IP Type | MAC Address | Vendor | Last Seen | Status |\n`;
+        md += `| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n`;
 
-        // Sort by Status (Online > Unstable > Offline), then IP
-        const statusWeight = { 'ONLINE': 0, 'UNSTABLE': 1, 'OFFLINE': 2 };
+        // Sort by:
+        // 1. Connection (Wired first: is_wired = 1)
+        // 2. IP Type (Fixed first: is_fixed_ip = 1)
+        // 3. IP Address (Numeric)
         devices.sort((a, b) => {
-            if (a.status !== b.status) return statusWeight[a.status] - statusWeight[b.status];
+            if (a.is_wired !== b.is_wired) return b.is_wired - a.is_wired;
+            if (a.is_fixed_ip !== b.is_fixed_ip) return b.is_fixed_ip - a.is_fixed_ip;
             return this.ipDotValue(a.ip) - this.ipDotValue(b.ip);
         });
 
         for (const d of devices) {
             const lastSeen = new Date(d.last_seen).toLocaleString();
             const ipDisplay = d.ip || '---';
-            const ipInfo = d.is_fixed_ip ? `${ipDisplay} (Fixed)` : `${ipDisplay} (DHCP)`;
-            md += `| ${d.hostname || 'Unknown'} | ${ipInfo} | \`${d.mac}\` | ${d.vendor || 'Unknown'} | ${lastSeen} | ${d.status} |\n`;
+            const connection = d.is_wired ? 'Wired' : 'Wireless';
+            const ipType = d.is_fixed_ip ? 'Fixed' : 'DHCP';
+
+            md += `| ${d.hostname || 'Unknown'} | ${connection} | ${ipDisplay} | ${ipType} | \`${d.mac}\` | ${d.vendor || 'Unknown'} | ${lastSeen} | ${d.status} |\n`;
         }
 
         // Ensure reports directory exists

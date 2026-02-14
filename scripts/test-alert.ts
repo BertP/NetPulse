@@ -6,8 +6,7 @@ const run = async () => {
     const db = new DatabaseService();
     const alertManager = new AlertManager();
 
-    // Insert a stale device manually for testing
-    const mac = 'aa:bb:cc:dd:ee:ff';
+    // V2: Fix for build failure with is_wired
     db.upsertDevice({
         mac,
         ip: '10.0.0.123',
@@ -15,9 +14,9 @@ const run = async () => {
         vendor: 'Mock Vendor',
         status: 'OFFLINE',
         source: 'SCAN',
-        last_seen: Date.now() - (15 * 60 * 1000), // 15 mins ago
+        is_wired: 0, // Explicitly added to match interface
         is_fixed_ip: 0,
-        is_wired: 0,
+        last_seen: Date.now() - (15 * 60 * 1000), // 15 mins ago
         updated_at: Date.now()
     });
 

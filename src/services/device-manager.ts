@@ -64,7 +64,7 @@ export class DeviceManager {
             const device: Device = {
                 mac: mac,
                 ip: scanned.ip,
-                hostname: '',
+                hostname: scanned.hostname || '',
                 vendor: '',
                 status: 'ONLINE',
                 source: 'SCAN',

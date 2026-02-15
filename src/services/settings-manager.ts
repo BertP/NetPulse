@@ -29,6 +29,7 @@ export class SettingsManager {
             this.db.upsertSetting('ALERT_THRESHOLD_MIN', config.alerts.thresholdMin.toString());
             this.db.upsertSetting('SERVER_IP', config.serverIp);
             this.db.upsertSetting('GATEWAY_TYPE', 'UNIFI');
+            this.db.upsertSetting('BASE_URL', '');
             console.log('✅ Settings bootstrapped');
         }
     }

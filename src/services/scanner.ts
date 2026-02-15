@@ -4,11 +4,14 @@ import { exec } from 'child_process';
 import util from 'util';
 import os from 'os';
 
+import bonjour from 'bonjour-service';
+
 const execAsync = util.promisify(exec);
 
 export interface ScannedDevice {
     mac: string;
     ip: string;
+    hostname?: string;
 }
 
 export class NetworkScanner {
@@ -42,23 +45,80 @@ export class NetworkScanner {
         }
 
         const devices: ScannedDevice[] = [];
+        const seenIps = new Set<string>();
+
+        // 1. mDNS Discovery (Background - wait 5 seconds)
+        const mdnsDevices: ScannedDevice[] = [];
+        const bj = new bonjour();
+        const browser = bj.find(null, (service) => {
+            if (service.referer && service.referer.address) {
+                const ip = service.referer.address;
+                const hostname = service.host || service.name;
+                mdnsDevices.push({ ip, mac: 'unknown', hostname });
+            }
+        });
+
+        console.log('🔍 mDNS: Starting discovery (5s)...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        browser.stop();
+        bj.destroy();
+        console.log(`🔍 mDNS: Found ${mdnsDevices.length} services`);
 
         for (const subnetBase of bases) {
             console.log(`📡 Scanning subnet ${subnetBase}.0/24...`);
 
-            // 1. Batch Ping (Active Reachability)
-            const BATCH_SIZE = 32;
-            for (let i = 1; i < 255; i += BATCH_SIZE) {
-                const batch = [];
-                for (let j = 0; j < BATCH_SIZE && (i + j) < 255; j++) {
-                    const ip = `${subnetBase}.${i + j}`;
-                    batch.push(ping.promise.probe(ip, { timeout: 1 }));
+            // Try NMAP first (Fast and reliable)
+            let nmapSuccess = false;
+            try {
+                // -sn: Ping Scan - disable port scan
+                // -PR: ARP scan (very fast on local network)
+                const { stdout } = await execAsync(`nmap -sn -PR ${subnetBase}.0/24`);
+                const lines = stdout.split('\n');
+                let currentIp = '';
+
+                for (const line of lines) {
+                    const ipMatch = line.match(/Nmap scan report for ([^ ]+)/);
+                    if (ipMatch) {
+                        // Extract IP from "Nmap scan report for 192.168.1.1" or "Nmap scan report for my-host (192.168.1.1)"
+                        const raw = ipMatch[1];
+                        if (raw.includes('(')) {
+                            currentIp = raw.match(/\(([^)]+)\)/)?.[1] || '';
+                        } else {
+                            currentIp = raw;
+                        }
+                    }
+
+                    const macMatch = line.match(/MAC Address: ([0-9a-fA-F:]{17})/);
+                    if (macMatch && currentIp) {
+                        const mac = macMatch[1].toLowerCase();
+                        if (!seenIps.has(currentIp)) {
+                            devices.push({ ip: currentIp, mac });
+                            seenIps.add(currentIp);
+                        }
+                        currentIp = '';
+                    }
                 }
-                await Promise.all(batch);
+                nmapSuccess = true;
+                console.log(`✅ Nmap: Subnet ${subnetBase} finished`);
+            } catch (e) {
+                console.log(`⚠️ Nmap failed for ${subnetBase}, falling back to manual ping/arp...`);
+            }
+
+            if (!nmapSuccess) {
+                // 2. Fallback: Batch Ping (Active Reachability)
+                const BATCH_SIZE = 32;
+                for (let i = 1; i < 255; i += BATCH_SIZE) {
+                    const batch = [];
+                    for (let j = 0; j < BATCH_SIZE && (i + j) < 255; j++) {
+                        const ip = `${subnetBase}.${i + j}`;
+                        batch.push(ping.promise.probe(ip, { timeout: 1 }));
+                    }
+                    await Promise.all(batch);
+                }
             }
         }
 
-        // 2. Read ARP Table (Layer 2 Discovery)
+        // 3. Read ARP Table (Layer 2 Discovery - mandatory for non-nmap or partially successful scans)
         try {
             const { stdout } = await execAsync('arp -a');
             const lines = stdout.split(os.EOL);
@@ -71,15 +131,27 @@ export class NetworkScanner {
                     const ip = ipMatch[0];
                     let mac = macMatch[0].replace(/-/g, ':').toLowerCase();
 
-                    // Verify if this IP belongs to any of our target subnets
-                    const isTarget = bases.some(base => ip.startsWith(base + '.'));
-                    if (isTarget) {
-                        devices.push({ ip, mac });
+                    if (!seenIps.has(ip)) {
+                        const isTarget = bases.some(base => ip.startsWith(base + '.'));
+                        if (isTarget) {
+                            devices.push({ ip, mac });
+                            seenIps.add(ip);
+                        }
                     }
                 }
             }
         } catch (e) {
             console.error('❌ ARP Scan failed:', e);
+        }
+
+        // Merge mDNS hostnames into found devices
+        for (const md of mdnsDevices) {
+            const existing = devices.find(d => d.ip === md.ip);
+            if (existing) {
+                if (md.hostname && !existing.hostname) {
+                    existing.hostname = md.hostname.replace(/\.local\.?$/, '');
+                }
+            }
         }
 
         return devices;

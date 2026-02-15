@@ -54,6 +54,13 @@ fastify.post('/scan', async (request, reply) => {
 
 fastify.post('/report', async (request, reply) => {
     const filename = reporter.generateMarkdown();
+    const baseUrl = db.getSetting('BASE_URL');
+
+    if (baseUrl && baseUrl.trim().length > 0) {
+        const url = `${baseUrl.replace(/\/$/, '')}/reports/${filename}`;
+        return { message: 'Report generated', filename, url };
+    }
+
     const serverIp = db.getSetting('SERVER_IP') || config.serverIp;
     const url = `http://${serverIp}:3001/reports/${filename}`;
     return { message: 'Report generated', filename, url };

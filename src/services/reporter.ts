@@ -87,6 +87,24 @@ export class ReportService {
 
             md += `| ${d.hostname || 'Unknown'} | ${connection} | ${ipDisplay} | ${ipType} | \`${d.mac}\` | ${d.vendor || 'Unknown'} | ${lastSeen} | ${d.status} |\n`;
         }
+        md += `\n`;
+
+        // Service Discovery Section
+        const services = this.db.getAllServices();
+        if (services.length > 0) {
+            md += `## mDNS Service Discovery\n\n`;
+            md += `The following services were discovered via protocol inspection:\n\n`;
+            md += `| Host IP | Service Name | Type | Port | Protocol |\n`;
+            md += `| :--- | :--- | :--- | :--- | :--- |\n`;
+
+            // Sort services by IP
+            services.sort((a, b) => this.ipDotValue(a.ip) - this.ipDotValue(b.ip));
+
+            for (const s of services) {
+                md += `| ${s.ip} | ${s.name} | \`${s.type}\` | ${s.port} | ${s.protocol} |\n`;
+            }
+            md += `\n`;
+        }
 
         // Ensure reports directory exists
         const reportDir = path.resolve(__dirname, '../../reports');

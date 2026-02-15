@@ -17,8 +17,30 @@ export class NetworkScanner {
     // But scan range can be passed.
 
     async scanSubnet(subnetConfig: string): Promise<ScannedDevice[]> {
-        // subnetConfig e.g., '192.168.1, 192.168.2'
-        const bases = subnetConfig.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        // subnetConfig e.g., '192.168.1, 192.168.2' OR '192.168.1-10'
+        const rawTokens = subnetConfig.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        const bases: string[] = [];
+
+        for (const token of rawTokens) {
+            if (token.includes('-')) {
+                // Range support: 192.168.1-10
+                const parts = token.split('.');
+                const lastPart = parts.pop() || '';
+                const base = parts.join('.');
+                const [start, end] = lastPart.split('-').map(Number);
+
+                if (!isNaN(start) && !isNaN(end)) {
+                    for (let i = start; i <= end; i++) {
+                        bases.push(`${base}.${i}`);
+                    }
+                } else {
+                    bases.push(token); // Fallback
+                }
+            } else {
+                bases.push(token);
+            }
+        }
+
         const devices: ScannedDevice[] = [];
 
         for (const subnetBase of bases) {

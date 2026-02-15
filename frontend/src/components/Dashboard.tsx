@@ -6,7 +6,9 @@ import { Settings } from './Settings';
 
 // Configure Axios
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001',
+    baseURL: import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== '/'
+        ? import.meta.env.VITE_API_URL
+        : window.location.origin,
 });
 
 interface Device {

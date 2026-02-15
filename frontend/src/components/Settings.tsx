@@ -4,7 +4,9 @@ import axios from 'axios';
 import { Save, Shield, Mail, Globe, ChevronLeft, RefreshCw } from 'lucide-react';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001',
+    baseURL: import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== '/'
+        ? import.meta.env.VITE_API_URL
+        : window.location.origin,
 });
 
 interface SettingsProps {
@@ -124,7 +126,8 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Field label="Scan Subnets (e.g. 192.168.1, 192.168.2)" value={settings.SCAN_SUBNET} onChange={v => handleChange('SCAN_SUBNET', v)} placeholder="192.168.1, 192.168.2" />
-                        <Field label="Server IP (for Links)" value={settings.SERVER_IP} onChange={v => handleChange('SERVER_IP', v)} placeholder="192.168.1.x" />
+                        <Field label="Server IP (LAN)" value={settings.SERVER_IP} onChange={v => handleChange('SERVER_IP', v)} placeholder="192.168.1.x" />
+                        <Field label="Public Base URL (for Proxy)" value={settings.BASE_URL} onChange={v => handleChange('BASE_URL', v)} placeholder="https://netpulse.yourdomain.com" />
                     </div>
                 </section>
 

@@ -24,9 +24,11 @@ export class UniFiService {
     async login(): Promise<boolean> {
         this.loggedIn = false;
 
-        // Strategy: Try UniFi OS login first, then Legacy
         try {
             console.log(`Attempting login to ${config.unifi.url}...`);
+
+            // Add Referer header which is often required for UniFi OS
+            const headers = { 'Referer': config.unifi.url };
 
             // 1. Try UniFi OS Login (/api/auth/login)
             try {
@@ -34,9 +36,9 @@ export class UniFiService {
                     username: config.unifi.user,
                     password: config.unifi.password,
                     remember: true
-                });
+                }, { headers, validateStatus: (status) => status === 200 || status === 302 });
 
-                if (response.status === 200) {
+                if (response.status === 200 || response.status === 302) {
                     this.handleLoginSuccess(response);
                     console.log('✅ Connected to UniFi Controller (UniFi OS)');
                     return true;
@@ -49,9 +51,9 @@ export class UniFiService {
             const response = await this.client.post('/api/login', {
                 username: config.unifi.user,
                 password: config.unifi.password,
-            });
+            }, { headers, validateStatus: (status) => status === 200 || status === 302 });
 
-            if (response.status === 200) {
+            if (response.status === 200 || response.status === 302) {
                 this.handleLoginSuccess(response);
                 console.log('✅ Connected to UniFi Controller (Legacy)');
                 return true;

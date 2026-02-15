@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { DeviceCard } from './DeviceCard';
-import { RefreshCw, Activity, AlertCircle, CheckCircle2, Settings as SettingsIcon } from 'lucide-react';
+import { Activity, Shield, Info, Settings as SettingsIcon, Search, Filter, Mail, Globe, Cpu, RefreshCw, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Settings } from './Settings';
+import { Services } from './Services';
 
 // Configure Axios
 const api = axios.create({
@@ -29,6 +30,7 @@ export const Dashboard = () => {
     const [scanning, setScanning] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [showSettings, setShowSettings] = useState(false);
+    const [view, setView] = useState<'DASHBOARD' | 'SERVICES'>('DASHBOARD');
     const [filter, setFilter] = useState<'ALL' | 'ONLINE' | 'OFFLINE'>('ALL');
 
     const fetchDevices = async () => {
@@ -128,10 +130,20 @@ export const Dashboard = () => {
                                 >
                                     Export
                                 </button>
+                                <button
+                                    onClick={() => setView('SERVICES')}
+                                    className="group relative px-6 py-2.5 rounded-full overflow-hidden transition-all active:scale-95"
+                                >
+                                    <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors" />
+                                    <div className="relative flex items-center gap-2 text-blue-400 font-black text-[10px] uppercase tracking-widest">
+                                        <Cpu size={14} className="group-hover:rotate-12 transition-transform" />
+                                        Discovery
+                                    </div>
+                                </button>
                             </>
                         )}
                         <button
-                            onClick={() => setShowSettings(!showSettings)}
+                            onClick={() => setShowSettings(true)}
                             className={`p-2.5 rounded-xl transition-all duration-300 border active:scale-95 ${showSettings ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'}`}
                         >
                             <SettingsIcon size={20} />
@@ -140,10 +152,12 @@ export const Dashboard = () => {
                 </div>
 
                 {showSettings ? (
-                    <Settings onBack={() => setShowSettings(false)} />
+                    <Settings onBack={() => { setShowSettings(false); fetchDevices(); }} />
+                ) : view === 'SERVICES' ? (
+                    <Services onBack={() => { setView('DASHBOARD'); fetchDevices(); }} />
                 ) : (
                     <>
-                        {/* Stat Cards */}
+                        {/* Header: Stats */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                             <button
                                 onClick={() => setFilter('ALL')}

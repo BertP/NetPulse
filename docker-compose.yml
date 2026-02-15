@@ -9,6 +9,7 @@ services:
     # Host mode is preferred for Network Scanning (Arp/Ping) to work correctly on local subnet
     environment:
       - PORT=3001
+      - SERVER_IP=${SERVER_IP}
       - UNIFI_URL=${UNIFI_URL}
       - UNIFI_USER=${UNIFI_USER}
       - UNIFI_PASSWORD=${UNIFI_PASSWORD}

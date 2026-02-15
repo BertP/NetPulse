@@ -24,7 +24,9 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
     const fetchSettings = async () => {
         try {
             const res = await api.get('/settings');
-            setSettings(res.data);
+            const data = res.data;
+            if (!data.GATEWAY_TYPE) data.GATEWAY_TYPE = 'UNIFI';
+            setSettings(data);
             setLoading(false);
         } catch (error) {
             console.error('Failed to fetch settings:', error);

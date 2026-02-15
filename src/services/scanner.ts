@@ -12,6 +12,15 @@ export interface ScannedDevice {
     mac: string;
     ip: string;
     hostname?: string;
+    services?: ScannedService[];
+}
+
+export interface ScannedService {
+    name: string;
+    type: string;
+    protocol: string;
+    port: number;
+    txt: Record<string, any>;
 }
 
 export class NetworkScanner {
@@ -48,13 +57,26 @@ export class NetworkScanner {
         const seenIps = new Set<string>();
 
         // 1. mDNS Discovery (Background - wait 5 seconds)
-        const mdnsDevices: ScannedDevice[] = [];
+        const mdnsDevices: (ScannedDevice & { services: ScannedService[] })[] = [];
         const bj = new bonjour();
         const browser = bj.find(null, (service) => {
             if (service.referer && service.referer.address) {
                 const ip = service.referer.address;
                 const hostname = service.host || service.name;
-                mdnsDevices.push({ ip, mac: 'unknown', hostname });
+
+                let dev = mdnsDevices.find(d => d.ip === ip);
+                if (!dev) {
+                    dev = { ip, mac: 'unknown', hostname, services: [] };
+                    mdnsDevices.push(dev);
+                }
+
+                dev.services.push({
+                    name: service.name,
+                    type: service.type,
+                    protocol: service.protocol,
+                    port: service.port,
+                    txt: service.txt || {}
+                });
             }
         });
 
@@ -62,7 +84,7 @@ export class NetworkScanner {
         await new Promise(resolve => setTimeout(resolve, 5000));
         browser.stop();
         bj.destroy();
-        console.log(`🔍 mDNS: Found ${mdnsDevices.length} services`);
+        console.log(`🔍 mDNS: Found ${mdnsDevices.length} devices with services via mDNS`);
 
         for (const subnetBase of bases) {
             console.log(`📡 Scanning subnet ${subnetBase}.0/24...`);
@@ -144,13 +166,18 @@ export class NetworkScanner {
             console.error('❌ ARP Scan failed:', e);
         }
 
-        // Merge mDNS hostnames into found devices
+        // Merge mDNS data into found devices
         for (const md of mdnsDevices) {
             const existing = devices.find(d => d.ip === md.ip);
             if (existing) {
                 if (md.hostname && !existing.hostname) {
                     existing.hostname = md.hostname.replace(/\.local\.?$/, '');
                 }
+                existing.services = md.services;
+            } else {
+                // If device wasn't found via ARP/Nmap but exists in mDNS
+                // We add it anyway even if MAC is unknown (for service visibility)
+                devices.push(md);
             }
         }
 

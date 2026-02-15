@@ -16,6 +16,17 @@ export interface Device {
     updated_at: number;
 }
 
+export interface mDNSService {
+    id?: number;
+    ip: string;
+    name: string;
+    type: string;
+    protocol: string;
+    port: number;
+    txt: string; // JSON string
+    updated_at: number;
+}
+
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS devices (
   mac TEXT PRIMARY KEY,
@@ -27,6 +38,17 @@ CREATE TABLE IF NOT EXISTS devices (
   last_seen INTEGER,
   is_fixed_ip INTEGER DEFAULT 0,
   is_wired INTEGER DEFAULT 0,
+  updated_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS services (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ip TEXT,
+  name TEXT,
+  type TEXT,
+  protocol TEXT,
+  port INTEGER,
+  txt TEXT,
   updated_at INTEGER
 );
 
@@ -73,6 +95,33 @@ export class DatabaseService {
 
     getDevice(mac: string): Device | undefined {
         return this.db.prepare('SELECT * FROM devices WHERE mac = ?').get(mac) as Device | undefined;
+    }
+
+    // Services
+    upsertService(service: mDNSService) {
+        const stmt = this.db.prepare(`
+            INSERT INTO services (ip, name, type, protocol, port, txt, updated_at)
+            VALUES (@ip, @name, @type, @protocol, @port, @txt, @updated_at)
+        `);
+        // We don't have a natural primary key for services besides maybe a combo of IP + name + type
+        // Let's do a simple cleanup and insert or similar. 
+        // Actually, let's just insert for now, or match by IP+Name+Type
+        const existing = this.db.prepare('SELECT id FROM services WHERE ip = ? AND name = ? AND type = ?').get(service.ip, service.name, service.type) as { id: number } | undefined;
+
+        if (existing) {
+            this.db.prepare('UPDATE services SET protocol = ?, port = ?, txt = ?, updated_at = ? WHERE id = ?')
+                .run(service.protocol, service.port, service.txt, service.updated_at, existing.id);
+        } else {
+            stmt.run(service);
+        }
+    }
+
+    clearServicesByIp(ip: string) {
+        this.db.prepare('DELETE FROM services WHERE ip = ?').run(ip);
+    }
+
+    getAllServices(): mDNSService[] {
+        return this.db.prepare('SELECT * FROM services').all() as mDNSService[];
     }
 
     // Settings

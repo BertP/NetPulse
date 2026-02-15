@@ -46,6 +46,10 @@ fastify.get('/devices', async (request, reply) => {
     return deviceManager.getAllDevices();
 });
 
+fastify.get('/services', async (request, reply) => {
+    return db.getAllServices();
+});
+
 fastify.post('/scan', async (request, reply) => {
     // Trigger manual scan
     deviceManager.sync();

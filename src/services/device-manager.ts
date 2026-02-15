@@ -75,6 +75,22 @@ export class DeviceManager {
             };
 
             this.mergeAndSave(device);
+
+            // Persist Services
+            if (scanned.services && scanned.services.length > 0) {
+                this.db.clearServicesByIp(scanned.ip);
+                for (const svc of scanned.services) {
+                    this.db.upsertService({
+                        ip: scanned.ip,
+                        name: svc.name,
+                        type: svc.type,
+                        protocol: svc.protocol,
+                        port: svc.port,
+                        txt: JSON.stringify(svc.txt),
+                        updated_at: now
+                    });
+                }
+            }
         }
 
         // 3. Mark Offline / Unstable

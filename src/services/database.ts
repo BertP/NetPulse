@@ -16,6 +16,21 @@ export interface Device {
     updated_at: number;
 }
 
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS devices (
+  mac TEXT PRIMARY KEY,
+  ip TEXT,
+  hostname TEXT,
+  vendor TEXT,
+  status TEXT CHECK(status IN ('ONLINE', 'UNSTABLE', 'OFFLINE')),
+  source TEXT CHECK(source IN ('UNIFI', 'SCAN', 'BOTH')),
+  last_seen INTEGER,
+  is_fixed_ip INTEGER DEFAULT 0,
+  is_wired INTEGER DEFAULT 0,
+  updated_at INTEGER
+);
+`;
+
 export class DatabaseService {
     private db: Database.Database;
 
@@ -25,9 +40,7 @@ export class DatabaseService {
     }
 
     private init() {
-        const schemaPath = path.resolve(__dirname, '../db/schema.sql');
-        const schema = fs.readFileSync(schemaPath, 'utf-8');
-        this.db.exec(schema);
+        this.db.exec(SCHEMA);
         console.log('✅ Database initialized');
     }
 

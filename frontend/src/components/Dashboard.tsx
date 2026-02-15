@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { DeviceCard } from './DeviceCard';
-import { Activity, Shield, Info, Settings as SettingsIcon, Search, Filter, Mail, Globe, Cpu, RefreshCw, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Activity, Settings as SettingsIcon, Cpu, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Settings } from './Settings';
 import { Services } from './Services';
 

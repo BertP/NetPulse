@@ -6,8 +6,8 @@ import { DatabaseService, Device } from './database';
 export class ReportService {
     private db: DatabaseService;
 
-    constructor() {
-        this.db = new DatabaseService();
+    constructor(db: DatabaseService) {
+        this.db = db;
     }
 
     generateMarkdown(): string {

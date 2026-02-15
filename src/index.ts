@@ -6,6 +6,7 @@ import { config } from './config';
 import { DeviceManager } from './services/device-manager';
 import { ReportService } from './services/reporter';
 import { AlertManager } from './services/alert-manager';
+import { DatabaseService } from './services/database';
 
 const fastify = Fastify({
     logger: true,
@@ -20,9 +21,10 @@ fastify.register(staticPlugin, {
     prefix: '/reports/',
 });
 
-const deviceManager = new DeviceManager();
-const reporter = new ReportService();
-const alertManager = new AlertManager();
+const db = new DatabaseService();
+const deviceManager = new DeviceManager(db);
+const reporter = new ReportService(db);
+const alertManager = new AlertManager(db);
 
 fastify.get('/', async (request, reply) => {
     return { hello: 'NetPulse Backend v0.4' };

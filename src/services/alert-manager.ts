@@ -7,8 +7,8 @@ export class AlertManager {
     private mailer: MailerService;
     private alertedDevices: Set<string> = new Set(); // Track devices we've already alerted for
 
-    constructor() {
-        this.db = new DatabaseService();
+    constructor(db: DatabaseService) {
+        this.db = db;
         this.mailer = new MailerService();
     }
 

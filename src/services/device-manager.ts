@@ -9,10 +9,10 @@ export class DeviceManager {
     private scanner: NetworkScanner;
     private db: DatabaseService;
 
-    constructor() {
+    constructor(db: DatabaseService) {
         this.unifi = new UniFiService();
         this.scanner = new NetworkScanner();
-        this.db = new DatabaseService();
+        this.db = db;
     }
 
     async sync() {

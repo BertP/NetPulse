@@ -72,18 +72,48 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
             </div>
 
             <form onSubmit={handleSave} className="space-y-8 pb-20">
-                {/* section: UniFi */}
+                {/* section: Gateway Mode */}
                 <section className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 backdrop-blur-sm">
                     <div className="flex items-center gap-2 mb-6 text-emerald-400 uppercase text-[10px] font-black tracking-widest">
-                        <Shield size={14} /> UniFi Controller
+                        <Globe size={14} /> Gateway Infrastructure
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Field label="Controller URL" value={settings.UNIFI_URL} onChange={v => handleChange('UNIFI_URL', v)} placeholder="https://192.168.1.1" />
-                        <Field label="Site ID" value={settings.UNIFI_SITE} onChange={v => handleChange('UNIFI_SITE', v)} placeholder="default" />
-                        <Field label="Username" value={settings.UNIFI_USER} onChange={v => handleChange('UNIFI_USER', v)} />
-                        <Field label="Password" value={settings.UNIFI_PASSWORD} onChange={v => handleChange('UNIFI_PASSWORD', v)} type="password" />
+                    <div className="flex gap-4 p-1 bg-white/5 rounded-2xl w-fit">
+                        <button
+                            type="button"
+                            onClick={() => handleChange('GATEWAY_TYPE', 'UNIFI')}
+                            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${settings.GATEWAY_TYPE !== 'GENERIC' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                            UniFi Gateway
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleChange('GATEWAY_TYPE', 'GENERIC')}
+                            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${settings.GATEWAY_TYPE === 'GENERIC' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                            Generic / FritzBox
+                        </button>
                     </div>
+                    <p className="mt-4 text-[10px] text-slate-600 font-medium uppercase tracking-wider ml-1">
+                        {settings.GATEWAY_TYPE === 'GENERIC'
+                            ? 'Operating in Scan-only mode. Hostnames and vendors will be limited to local discovery.'
+                            : 'Full integration enabled. Fetching deep-packet inspection and fixed IP data from UniFi.'}
+                    </p>
                 </section>
+
+                {/* section: UniFi */}
+                {settings.GATEWAY_TYPE !== 'GENERIC' && (
+                    <section className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 backdrop-blur-sm animate-fade-in">
+                        <div className="flex items-center gap-2 mb-6 text-emerald-400 uppercase text-[10px] font-black tracking-widest">
+                            <Shield size={14} /> UniFi Controller
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Field label="Controller URL" value={settings.UNIFI_URL} onChange={v => handleChange('UNIFI_URL', v)} placeholder="https://192.168.1.1" />
+                            <Field label="Site ID" value={settings.UNIFI_SITE} onChange={v => handleChange('UNIFI_SITE', v)} placeholder="default" />
+                            <Field label="Username" value={settings.UNIFI_USER} onChange={v => handleChange('UNIFI_USER', v)} />
+                            <Field label="Password" value={settings.UNIFI_PASSWORD} onChange={v => handleChange('UNIFI_PASSWORD', v)} type="password" />
+                        </div>
+                    </section>
+                )}
 
                 {/* section: Scanner */}
                 <section className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 backdrop-blur-sm">

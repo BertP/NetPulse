@@ -28,6 +28,7 @@ export class SettingsManager {
             this.db.upsertSetting('SMTP_TO', config.email.to);
             this.db.upsertSetting('ALERT_THRESHOLD_MIN', config.alerts.thresholdMin.toString());
             this.db.upsertSetting('SERVER_IP', config.serverIp);
+            this.db.upsertSetting('GATEWAY_TYPE', 'UNIFI');
             console.log('✅ Settings bootstrapped');
         }
     }

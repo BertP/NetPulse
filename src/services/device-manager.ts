@@ -20,28 +20,34 @@ export class DeviceManager {
         const now = Date.now();
         const seenMacsInThisLoop = new Set<string>();
 
-        // 1. Fetch UniFi Clients
-        const unifiClients = await this.unifi.getClients();
-        console.log(`📥 UniFi: Found ${unifiClients.length} clients`);
+        // 1. Fetch UniFi Clients (Conditional)
+        const gatewayType = this.db.getSetting('GATEWAY_TYPE') || 'UNIFI';
 
-        for (const client of unifiClients) {
-            const mac = client.mac.toLowerCase();
-            seenMacsInThisLoop.add(mac);
+        if (gatewayType === 'UNIFI') {
+            const unifiClients = await this.unifi.getClients();
+            console.log(`📥 UniFi: Found ${unifiClients.length} clients`);
 
-            const device: Device = {
-                mac: mac,
-                ip: client.ip,
-                hostname: client.name || client.hostname || '',
-                vendor: client.oui,
-                status: 'ONLINE',
-                source: 'UNIFI',
-                last_seen: client.last_seen * 1000,
-                is_fixed_ip: client.use_fixedip ? 1 : 0,
-                is_wired: client.is_wired ? 1 : 0,
-                updated_at: now
-            };
+            for (const client of unifiClients) {
+                const mac = client.mac.toLowerCase();
+                seenMacsInThisLoop.add(mac);
 
-            this.mergeAndSave(device);
+                const device: Device = {
+                    mac: mac,
+                    ip: client.ip,
+                    hostname: client.name || client.hostname || '',
+                    vendor: client.oui,
+                    status: 'ONLINE',
+                    source: 'UNIFI',
+                    last_seen: client.last_seen * 1000,
+                    is_fixed_ip: client.use_fixedip ? 1 : 0,
+                    is_wired: client.is_wired ? 1 : 0,
+                    updated_at: now
+                };
+
+                this.mergeAndSave(device);
+            }
+        } else {
+            console.log('ℹ️ UniFi sync skipped (Gateway mode: GENERIC)');
         }
 
         // 2. Active Scan

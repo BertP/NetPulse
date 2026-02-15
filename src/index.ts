@@ -42,7 +42,7 @@ fastify.post('/scan', async (request, reply) => {
 
 fastify.post('/report', async (request, reply) => {
     const filename = reporter.generateMarkdown();
-    const url = `http://localhost:${config.port}/reports/${filename}`;
+    const url = `http://localhost:3001/reports/${filename}`;
     return { message: 'Report generated', filename, url };
 });
 

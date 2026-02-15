@@ -65,15 +65,15 @@ docker-compose up -d --build
 ## 🔍 Step 4: Verification
 
 - **Dashboard**: Access via `http://<YOUR_SERVER_IP>`.
-- **Backend API**: Verify at `http://<YOUR_SERVER_IP>:3000/`.
+- **Backend API**: Verify at `http://<YOUR_SERVER_IP>:3001/`.
 - **Reports**: Stored in `./reports` and accessible via the UI.
 
 ## 🛠 Troubleshooting
 
 - **Permissions**: Ensure `docker-compose` is run with `sudo` if you haven't added your user to the `docker` group.
-- **Network Scanning**: The backend uses `network_mode: host` to allow ARP scanning. Ensure no other service is blocking port 3000.
-- **Firewall**: If using `ufw`, allow ports 80 and 3000:
+- **Network Scanning**: The backend uses `network_mode: host` to allow ARP scanning. Ensure no other service is blocking port 3001.
+- **Firewall**: If using `ufw`, allow ports 80 and 3001:
   ```bash
   sudo ufw allow 80/tcp
-  sudo ufw allow 3000/tcp
+  sudo ufw allow 3001/tcp
   ```

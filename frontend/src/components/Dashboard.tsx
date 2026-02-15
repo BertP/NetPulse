@@ -5,7 +5,7 @@ import { RefreshCw, Activity, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 // Configure Axios
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001',
 });
 
 interface Device {

@@ -42,7 +42,8 @@ sudo usermod -aG docker $USER
    Fill in the following:
    - `UNIFI_URL`: Internal IP/URL of your controller.
    - `UNIFI_USER` / `UNIFI_PASSWORD`: Controller credentials.
-   - `SMTP_*`: Your email provider settings.
+   - `SERVER_IP`: The IP address of this machine (e.g., `192.168.1.252`). Required for frontend connectivity.
+   - `SMTP_*`: Your email provider settings (optional).
    - `ALERT_THRESHOLD_MIN`: Time in minutes before alerting.
 
 3. **Configure Frontend**:

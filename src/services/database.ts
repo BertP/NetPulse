@@ -29,7 +29,12 @@ CREATE TABLE IF NOT EXISTS devices (
   is_wired INTEGER DEFAULT 0,
   updated_at INTEGER
 );
-`;
+
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+`
 
 export class DatabaseService {
     private db: Database.Database;
@@ -68,5 +73,24 @@ export class DatabaseService {
 
     getDevice(mac: string): Device | undefined {
         return this.db.prepare('SELECT * FROM devices WHERE mac = ?').get(mac) as Device | undefined;
+    }
+
+    // Settings
+    getSetting(key: string): string | undefined {
+        const row = this.db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined;
+        return row?.value;
+    }
+
+    getAllSettings(): Record<string, string> {
+        const rows = this.db.prepare('SELECT * FROM settings').all() as { key: string, value: string }[];
+        const settings: Record<string, string> = {};
+        for (const row of rows) {
+            settings[row.key] = row.value;
+        }
+        return settings;
+    }
+
+    upsertSetting(key: string, value: string) {
+        this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, value);
     }
 }

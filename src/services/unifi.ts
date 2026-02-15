@@ -2,18 +2,22 @@ import axios, { AxiosInstance } from 'axios';
 import { httpsAgent } from './http-agent';
 import { config } from '../config';
 import { UniFiClient, UniFiResponse } from '../types/unifi';
+import { DatabaseService } from './database';
 
 export class UniFiService {
     private client: AxiosInstance;
     private loggedIn = false;
+    private db: DatabaseService;
 
-    constructor() {
+    constructor(db: DatabaseService) {
+        this.db = db;
+        const url = this.db.getSetting('UNIFI_URL') || config.unifi.url;
         this.client = axios.create({
-            baseURL: config.unifi.url,
+            baseURL: url,
             httpsAgent: config.unifi.ignoreSsl ? httpsAgent : undefined,
             timeout: 10000,
-            withCredentials: true, // Important for cookie retention
-            maxRedirects: 0, // Prevent auto-redirects to handle 302s manually if needed
+            withCredentials: true,
+            maxRedirects: 0,
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
@@ -21,15 +25,28 @@ export class UniFiService {
         });
     }
 
+    private getDynamicConfig() {
+        return {
+            url: this.db.getSetting('UNIFI_URL') || config.unifi.url,
+            user: this.db.getSetting('UNIFI_USER') || config.unifi.user,
+            password: this.db.getSetting('UNIFI_PASSWORD') || config.unifi.password,
+            site: this.db.getSetting('UNIFI_SITE') || config.unifi.site,
+        };
+    }
+
     async login(): Promise<boolean> {
         this.loggedIn = false;
+        const dConfig = this.getDynamicConfig();
+
+        // Update client baseURL in case it changed in DB
+        this.client.defaults.baseURL = dConfig.url;
 
         try {
-            const sanitizedUser = config.unifi.user.trim();
-            console.log(`Attempting login to ${config.unifi.url} with user [${sanitizedUser}]...`);
+            const sanitizedUser = dConfig.user.trim();
+            console.log(`Attempting login to ${dConfig.url} with user [${sanitizedUser}]...`);
 
             const headers = {
-                'Referer': `${config.unifi.url}/`,
+                'Referer': `${dConfig.url}/`,
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'application/json, text/plain, */*'
             };
@@ -47,7 +64,7 @@ export class UniFiService {
             try {
                 const response = await this.client.post('/api/auth/login', {
                     username: sanitizedUser,
-                    password: config.unifi.password,
+                    password: dConfig.password,
                     remember: true
                 }, { headers, validateStatus: (status) => status === 200 || status === 302 || status === 403 });
 
@@ -67,7 +84,7 @@ export class UniFiService {
             console.log('Attempting Legacy Login...');
             const response = await this.client.post('/api/login', {
                 username: sanitizedUser,
-                password: config.unifi.password,
+                password: dConfig.password,
             }, { headers, validateStatus: (status) => status === 200 || status === 302 });
 
             if (response.status === 200 || response.status === 302) {
@@ -106,6 +123,7 @@ export class UniFiService {
     }
 
     async getClients(): Promise<UniFiClient[]> {
+        const dConfig = this.getDynamicConfig();
         if (!this.loggedIn) {
             const success = await this.login();
             if (!success) {
@@ -115,8 +133,8 @@ export class UniFiService {
         }
 
         const endpoints = [
-            `/proxy/network/api/s/${config.unifi.site}/stat/sta`, // UniFi OS Proxy
-            `/api/s/${config.unifi.site}/stat/sta`                // Legacy / Direct
+            `/proxy/network/api/s/${dConfig.site}/stat/sta`, // UniFi OS Proxy
+            `/api/s/${dConfig.site}/stat/sta`                // Legacy / Direct
         ];
 
         for (const url of endpoints) {

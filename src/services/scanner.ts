@@ -16,56 +16,46 @@ export class NetworkScanner {
     // For now, assuming standard /24 C class network based on interface
     // But scan range can be passed.
 
-    async scanSubnet(subnetBase: string): Promise<ScannedDevice[]> {
-        // subnetBase e.g., '192.168.1'
+    async scanSubnet(subnetConfig: string): Promise<ScannedDevice[]> {
+        // subnetConfig e.g., '192.168.1, 192.168.2'
+        const bases = subnetConfig.split(',').map(s => s.trim()).filter(s => s.length > 0);
         const devices: ScannedDevice[] = [];
-        const promises = [];
 
-        console.log(`📡 Scanning subnet ${subnetBase}.0/24...`);
+        for (const subnetBase of bases) {
+            console.log(`📡 Scanning subnet ${subnetBase}.0/24...`);
 
-        // 1. Batch Ping (Active Reachability)
-        // Pinging in batches of 32 to avoid overwhelming system
-        const BATCH_SIZE = 32;
-        for (let i = 1; i < 255; i += BATCH_SIZE) {
-            const batch = [];
-            for (let j = 0; j < BATCH_SIZE && (i + j) < 255; j++) {
-                const ip = `${subnetBase}.${i + j}`;
-                batch.push(ping.promise.probe(ip, { timeout: 1 }));
+            // 1. Batch Ping (Active Reachability)
+            const BATCH_SIZE = 32;
+            for (let i = 1; i < 255; i += BATCH_SIZE) {
+                const batch = [];
+                for (let j = 0; j < BATCH_SIZE && (i + j) < 255; j++) {
+                    const ip = `${subnetBase}.${i + j}`;
+                    batch.push(ping.promise.probe(ip, { timeout: 1 }));
+                }
+                await Promise.all(batch);
             }
-            await Promise.all(batch);
         }
 
         // 2. Read ARP Table (Layer 2 Discovery)
-        // This gives us MAC addresses for the IPs we just pinged (if they exist)
         try {
             const { stdout } = await execAsync('arp -a');
             const lines = stdout.split(os.EOL);
 
-            // Parse ARP table (Windows format vs Linux format differs)
-            // Windows:  Interface: 192.168.1.50 --- 0x10
-            //           Internet Address      Physical Address      Type
-            //           192.168.1.1           xx-xx-xx-xx-xx-xx     dynamic
-
-            // Linux:    ? (192.168.1.1) at xx:xx:xx:xx:xx:xx [ether] on eth0
-
             for (const line of lines) {
-                // Heuristic regex for IPv4 and MAC
                 const ipMatch = line.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
-                // Windows uses dashes, Linux colons. Let's normalize to colons.
                 const macMatch = line.match(/([0-9a-fA-F]{2}[:-]){5}([0-9a-fA-F]{2})/);
 
                 if (ipMatch && macMatch) {
-
                     const ip = ipMatch[0];
                     let mac = macMatch[0].replace(/-/g, ':').toLowerCase();
 
-                    // Filter out multicast/broadcast if needed, but basic checks:
-                    if (ip.startsWith(subnetBase)) {
+                    // Verify if this IP belongs to any of our target subnets
+                    const isTarget = bases.some(base => ip.startsWith(base + '.'));
+                    if (isTarget) {
                         devices.push({ ip, mac });
                     }
                 }
             }
-
         } catch (e) {
             console.error('❌ ARP Scan failed:', e);
         }

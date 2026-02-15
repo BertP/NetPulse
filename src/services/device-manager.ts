@@ -10,7 +10,7 @@ export class DeviceManager {
     private db: DatabaseService;
 
     constructor(db: DatabaseService) {
-        this.unifi = new UniFiService();
+        this.unifi = new UniFiService(db);
         this.scanner = new NetworkScanner();
         this.db = db;
     }
@@ -45,7 +45,7 @@ export class DeviceManager {
         }
 
         // 2. Active Scan
-        const subnet = config.scanner.subnet;
+        const subnet = this.db.getSetting('SCAN_SUBNET') || config.scanner.subnet;
         const scanStart = Date.now();
         const scanResults = await this.scanner.scanSubnet(subnet);
         const scanDuration = Date.now() - scanStart;

@@ -7,6 +7,7 @@ import { DeviceManager } from './services/device-manager';
 import { ReportService } from './services/reporter';
 import { AlertManager } from './services/alert-manager';
 import { DatabaseService } from './services/database';
+import { SettingsManager } from './services/settings-manager';
 
 const fastify = Fastify({
     logger: true,
@@ -22,12 +23,23 @@ fastify.register(staticPlugin, {
 });
 
 const db = new DatabaseService();
+const settingsManager = new SettingsManager(db);
 const deviceManager = new DeviceManager(db);
 const reporter = new ReportService(db);
 const alertManager = new AlertManager(db);
 
 fastify.get('/', async (request, reply) => {
-    return { hello: 'NetPulse Backend v0.4' };
+    return { hello: 'NetPulse Backend v0.5', status: 'online' };
+});
+
+fastify.get('/settings', async (request, reply) => {
+    return settingsManager.getSettings();
+});
+
+fastify.post('/settings', async (request, reply) => {
+    const settings = request.body as Record<string, string>;
+    settingsManager.updateSettings(settings);
+    return { success: true };
 });
 
 fastify.get('/devices', async (request, reply) => {
@@ -42,7 +54,8 @@ fastify.post('/scan', async (request, reply) => {
 
 fastify.post('/report', async (request, reply) => {
     const filename = reporter.generateMarkdown();
-    const url = `http://${config.serverIp}:3001/reports/${filename}`;
+    const serverIp = db.getSetting('SERVER_IP') || config.serverIp;
+    const url = `http://${serverIp}:3001/reports/${filename}`;
     return { message: 'Report generated', filename, url };
 });
 

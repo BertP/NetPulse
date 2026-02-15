@@ -9,13 +9,14 @@ export class AlertManager {
 
     constructor(db: DatabaseService) {
         this.db = db;
-        this.mailer = new MailerService();
+        this.mailer = new MailerService(this.db);
     }
 
     async checkThresholds() {
         const devices = this.db.getAllDevices();
         const now = Date.now();
-        const THRESHOLD_MS = config.alerts.thresholdMin * 60 * 1000;
+        const thresholdMin = parseInt(this.db.getSetting('ALERT_THRESHOLD_MIN') || config.alerts.thresholdMin.toString(), 10);
+        const THRESHOLD_MS = thresholdMin * 60 * 1000;
 
         for (const device of devices) {
             // Check if device is marked OFFLINE or has very old last_seen

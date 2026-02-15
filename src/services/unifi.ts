@@ -25,7 +25,8 @@ export class UniFiService {
         this.loggedIn = false;
 
         try {
-            console.log(`Attempting login to ${config.unifi.url}...`);
+            const sanitizedUser = config.unifi.user.trim();
+            console.log(`Attempting login to ${config.unifi.url} with user [${sanitizedUser}]...`);
 
             // Add Referer header which is often required for UniFi OS
             const headers = { 'Referer': config.unifi.url };
@@ -33,37 +34,40 @@ export class UniFiService {
             // 1. Try UniFi OS Login (/api/auth/login)
             try {
                 const response = await this.client.post('/api/auth/login', {
-                    username: config.unifi.user,
+                    username: sanitizedUser,
                     password: config.unifi.password,
                     remember: true
                 }, { headers, validateStatus: (status) => status === 200 || status === 302 });
 
                 if (response.status === 200 || response.status === 302) {
                     this.handleLoginSuccess(response);
-                    console.log('✅ Connected to UniFi Controller (UniFi OS)');
+                    console.log(`✅ Connected to UniFi Controller (UniFi OS) - Status: ${response.status}`);
                     return true;
                 }
             } catch (e: any) {
-                // Ignore and try next method
+                console.log(`UniFi OS Login attempt failed: ${e.message}`);
+                // Continue to Legacy
             }
 
             // 2. Try Legacy Login (/api/login)
+            console.log('Attempting Legacy Login...');
             const response = await this.client.post('/api/login', {
-                username: config.unifi.user,
+                username: sanitizedUser,
                 password: config.unifi.password,
             }, { headers, validateStatus: (status) => status === 200 || status === 302 });
 
             if (response.status === 200 || response.status === 302) {
                 this.handleLoginSuccess(response);
-                console.log('✅ Connected to UniFi Controller (Legacy)');
+                console.log(`✅ Connected to UniFi Controller (Legacy) - Status: ${response.status}`);
                 return true;
             }
 
         } catch (error: any) {
-            console.error('❌ UniFi Login Failed:', error.message);
+            console.error('❌ UniFi Login Final Failure:', error.message);
             if (error.response) {
                 console.error('Status:', error.response.status);
                 console.error('Data:', JSON.stringify(error.response.data));
+                console.error('Headers:', JSON.stringify(error.response.headers));
             }
         }
         return false;
@@ -72,12 +76,17 @@ export class UniFiService {
     private handleLoginSuccess(response: any) {
         const setCookie = response.headers['set-cookie'];
         if (setCookie) {
-            this.client.defaults.headers.Cookie = setCookie;
+            // Join array of cookies if necessary
+            const cookieStr = Array.isArray(setCookie) ? setCookie.join('; ') : setCookie;
+            this.client.defaults.headers.Cookie = cookieStr;
+            console.log('🔑 Cookies captured');
         }
+
         // Extract CSRF token if present
         const csrfToken = response.headers['x-csrf-token'];
         if (csrfToken) {
             this.client.defaults.headers['x-csrf-token'] = csrfToken;
+            console.log('🔑 CSRF Token captured');
         }
         this.loggedIn = true;
     }

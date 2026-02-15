@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ChevronLeft, Server, Cpu, Globe } from 'lucide-react';
+import { ChevronLeft, Server, Cpu, Globe, RefreshCw } from 'lucide-react';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== '/'
@@ -27,20 +27,35 @@ interface ServicesProps {
 export const Services: React.FC<ServicesProps> = ({ onBack }) => {
     const [services, setServices] = useState<mDNSService[]>([]);
     const [loading, setLoading] = useState(true);
+    const [scanning, setScanning] = useState(false);
+
+    const fetch = async () => {
+        try {
+            const res = await api.get('/services');
+            setServices(res.data);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetch = async () => {
-            try {
-                const res = await api.get('/services');
-                setServices(res.data);
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetch();
     }, []);
+
+    const handleRefresh = async () => {
+        setScanning(true);
+        try {
+            await api.post('/scan');
+            // Wait a bit for scan to progress (discovery takes 5s minimum)
+            setTimeout(fetch, 6000);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setScanning(false);
+        }
+    };
 
     const grouped = services.reduce((acc, svc) => {
         if (!acc[svc.ip]) acc[svc.ip] = [];
@@ -70,6 +85,14 @@ export const Services: React.FC<ServicesProps> = ({ onBack }) => {
                     <h2 className="text-2xl font-black text-white tracking-tight">mDNS Discovery</h2>
                     <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">ZeroConf Service Map</p>
                 </div>
+                <button
+                    onClick={handleRefresh}
+                    disabled={scanning}
+                    className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-xl transition-all border font-bold text-[10px] uppercase tracking-widest ${scanning ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 opacity-50' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'}`}
+                >
+                    <RefreshCw size={14} className={scanning ? 'animate-spin' : ''} />
+                    {scanning ? 'Discovering...' : 'Scan Now'}
+                </button>
             </div>
 
             {services.length === 0 ? (
